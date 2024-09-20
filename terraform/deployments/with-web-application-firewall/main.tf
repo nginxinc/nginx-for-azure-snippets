@@ -38,10 +38,8 @@ resource "azurerm_nginx_deployment" "example" {
   network_interface {
     subnet_id = module.prerequisites.subnet_id
   }
-  nginx_app_protect {
-    web_application_firewall_settings {
-      activation_state = "Enabled"
-    }
+  web_application_firewall {
+    activation_state = "Enabled"
   }
   tags = var.tags
 }
@@ -57,6 +55,8 @@ worker_processes auto;
 worker_rlimit_nofile 8192;
 pid /run/nginx/nginx.pid;
 
+load_module modules/ngx_http_app_protect_module.so;
+
 events {
     worker_connections 4000;
 }
@@ -64,11 +64,20 @@ events {
 error_log /var/log/nginx/error.log error;
 
 http {
+    app_protect_enforcer_address 127.0.0.1:50000;
+
     server {
         listen 80 default_server;
-        server_name localhost;
+
         location / {
-            return 200 'Hello World';
+            app_protect_enable on;
+            app_protect_policy_file /etc/app_protect/conf/NginxDefaultPolicy.tgz;
+            proxy_pass http://127.0.0.1:80/proxy/$request_uri;
+        }
+
+        location /proxy {
+            default_type text/html;
+            return 200 "Hello World\n";
         }
     }
 }
