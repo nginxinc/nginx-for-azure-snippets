@@ -68,13 +68,14 @@ events {
     worker_connections 4000;
 }
 
-error_log /var/log/nginx/error.log error;
-
 http {
+    log_format access_format '$remote_addr - "$remote_user" [$time_local] "$request" $status';
+    error_log /var/log/nginx/error.log error;
+    access_log /var/log/nginx/access.log access_format;
     server {
         listen 80 default_server;
         server_name localhost;
-        location / {
+        location = / {
             return 200 'Hello World';
         }
     }
